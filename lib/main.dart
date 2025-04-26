@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 void main() {
   runApp(MyApp());
@@ -28,22 +27,29 @@ class _CalculatorPageState extends State<CalculatorPage> {
   String _input = '0';
   String _operator = '';
   double? _firstOperand;
+  bool _waitingForSecondOperand = false;
 
   void _clear() {
     setState(() {
       _input = '0';
       _operator = '';
       _firstOperand = null;
+      _waitingForSecondOperand = false;
     });
   }
 
   void _appendValue(String value) {
     setState(() {
-      if (_input == '0' && value != '.') {
-        _input = value;
+      if (_waitingForSecondOperand) {
+        _input = value == '.' ? '0.' : value;
+        _waitingForSecondOperand = false;
       } else {
-        if (value == '.' && _input.contains('.')) return;
-        _input += value;
+        if (_input == '0' && value != '.') {
+          _input = value;
+        } else {
+          if (value == '.' && _input.contains('.')) return;
+          _input += value;
+        }
       }
     });
   }
@@ -62,14 +68,17 @@ class _CalculatorPageState extends State<CalculatorPage> {
     setState(() {
       double num = double.tryParse(_input) ?? 0;
       _input = (num / 100).toString();
+      if (_input.endsWith('.0')) {
+        _input = _input.replaceAll('.0', '');
+      }
     });
   }
 
   void _setOperator(String operator) {
     setState(() {
       _firstOperand = double.tryParse(_input);
-      _input = '0';
       _operator = operator;
+      _waitingForSecondOperand = true;
     });
   }
 
@@ -97,6 +106,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
         _input = result.toString().replaceAll(RegExp(r"\.0$"), "");
         _operator = '';
         _firstOperand = null;
+        _waitingForSecondOperand = false;
       });
     }
   }
@@ -114,6 +124,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
           shadowColor: Colors.black54,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
+            // borderRadius: text == "7" ? BorderRadius.circular(100) : BorderRadius.circular(12),
           ),
           minimumSize: Size(64, 64),
         ),
@@ -136,6 +147,8 @@ class _CalculatorPageState extends State<CalculatorPage> {
                 child: Text(
                   _input,
                   style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ),
@@ -146,7 +159,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
                 crossAxisCount: 4,
                 padding: EdgeInsets.all(10),
                 children: [
-                  _buildButton('c', _clear),
+                  _buildButton('C', _clear),
                   _buildButton('±', _toggleSign),
                   _buildButton('%', _percent),
                   _buildButton('+', () => _setOperator('+')),
